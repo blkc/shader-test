@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://drejlsho6tqmm"]
+
+[ext_resource type="Script" uid="uid://c2njy4jox0gf6" path="res://scripts/ui.gd" id="1_dgwv7"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_iowct"]
+size = Vector3(1, 1, 10)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_4s5ps"]
+sky_top_color = Color(0.6, 0.713725, 0.85098, 1)
+sky_horizon_color = Color(0.85098, 0.713725, 0.6, 1)
+
+[sub_resource type="Sky" id="Sky_y7qg5"]
+sky_material = SubResource("ProceduralSkyMaterial_4s5ps")
+
+[sub_resource type="Environment" id="Environment_c82x2"]
+background_mode = 2
+sky = SubResource("Sky_y7qg5")
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_dgwv7")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_iowct")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_c82x2")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.683, 0.201, -0.702, 0, 0.939, 0.342, 0.73, -0.28, 0.62, -4, 4, 6)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="CaptureButton" type="Button" parent="CanvasLayer"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 170.0
+offset_bottom = 51.0
+text = "Capture Depth Map"
