@@ -1,9 +1,29 @@
-[gd_scene load_steps=6 format=3 uid="uid://drejlsho6tqmm"]
+[gd_scene load_steps=13 format=3 uid="uid://drejlsho6tqmm"]
 
 [ext_resource type="Script" uid="uid://c2njy4jox0gf6" path="res://scripts/ui.gd" id="1_dgwv7"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_iowct"]
+[sub_resource type="BoxMesh" id="BoxMesh_OriginalCube"]
 size = Vector3(1, 1, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_Red"]
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_Near"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_Green"]
+albedo_color = Color(0, 1, 0, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Side"]
+size = Vector3(1, 4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_Blue"]
+albedo_color = Color(0, 0, 1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Floor"]
+size = Vector3(20, 0.2, 20)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_Gray"]
+albedo_color = Color(0.5, 0.5, 0.5, 1)
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_4s5ps"]
 sky_top_color = Color(0.6, 0.713725, 0.85098, 1)
@@ -19,8 +39,24 @@ sky = SubResource("Sky_y7qg5")
 [node name="Main" type="Node3D"]
 script = ExtResource("1_dgwv7")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_iowct")
+[node name="OriginalCube" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_OriginalCube")
+surface_material_override/0 = SubResource("StandardMaterial3D_Red")
+
+[node name="NearSphere" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, 2)
+mesh = SubResource("SphereMesh_Near")
+surface_material_override/0 = SubResource("StandardMaterial3D_Green")
+
+[node name="SideBox" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
+mesh = SubResource("BoxMesh_Side")
+surface_material_override/0 = SubResource("StandardMaterial3D_Blue")
+
+[node name="FloorPlane" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2, 0)
+mesh = SubResource("BoxMesh_Floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_Gray")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)

@@ -1,10 +1,13 @@
 class_name DepthMapGeneratorQuad
 extends RefCounted
 
-static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vector2) -> Image:
+static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vector2, remap_near: float = -1.0, remap_far: float = -1.0) -> Image:
     if not parent_vp or not camera:
         printerr("[DepthMapGeneratorQuad] Invalid Viewport or Camera provided.")
         return null
+
+    var remap_n = remap_near if remap_near >= 0.0 else camera.near
+    var remap_f = remap_far if remap_far >= 0.0 else camera.far
 
     var sub_vp = SubViewport.new()
     sub_vp.size = size
@@ -26,7 +29,7 @@ static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vect
     quad.mesh = QuadMesh.new()
     quad.mesh.size = Vector2(2, 2)
     quad.extra_cull_margin = 16384.0
-    quad.material_override = _make_quad_depth_shader(cam.far)
+    quad.material_override = _make_quad_depth_shader(remap_n, remap_f)
     cam.add_child(quad)
 
     await sub_vp.get_tree().process_frame
@@ -47,7 +50,7 @@ static func save_depth_map_debug(depth_image: Image, filepath: String = "user://
         return false
     return true
 
-static func _make_quad_depth_shader(far_plane: float) -> ShaderMaterial:
+static func _make_quad_depth_shader(remap_near: float, remap_far: float) -> ShaderMaterial:
     var mat = ShaderMaterial.new()
     var sh = Shader.new()
     sh.code = """
@@ -55,7 +58,8 @@ shader_type spatial;
 render_mode unshaded, cull_disabled, depth_test_disabled;
 
 uniform sampler2D DEPTH_TEXTURE : hint_depth_texture;
-uniform float far_plane;
+uniform float remap_near;
+uniform float remap_far;
 
 void vertex() {
     POSITION = vec4(VERTEX.xy, 1.0, 1.0);
@@ -74,9 +78,12 @@ void fragment() {
     view.xyz /= view.w;
     float linear_depth = -view.z;
 
-    ALBEDO = vec3(1.0 - (linear_depth / far_plane));
+    float norm = (linear_depth - remap_near) / (remap_far - remap_near);
+
+    ALBEDO = vec3(1.0 - clamp(norm, 0.0, 1.0));
 }
 """
     mat.shader = sh
-    mat.set_shader_parameter("far_plane", far_plane)
+    mat.set_shader_parameter("remap_near", remap_near)
+    mat.set_shader_parameter("remap_far", remap_far)
     return mat
