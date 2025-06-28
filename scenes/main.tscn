@@ -34,9 +34,16 @@ transform = Transform3D(0.683, 0.201, -0.702, 0, 0.939, 0.342, 0.73, -0.28, 0.62
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="CaptureButton" type="Button" parent="CanvasLayer"]
+[node name="CanvasButton" type="Button" parent="CanvasLayer"]
 offset_left = 20.0
 offset_top = 20.0
 offset_right = 170.0
 offset_bottom = 51.0
-text = "Capture Depth Map"
+text = "Capture with Canvas"
+
+[node name="QuadButton" type="Button" parent="CanvasLayer"]
+offset_left = 20.0
+offset_top = 60.0
+offset_right = 170.0
+offset_bottom = 51.0
+text = "Capture with Quad"

@@ -1,4 +1,4 @@
-class_name DepthMapGenerator
+class_name DepthMapGeneratorCanvas
 extends RefCounted
 
 static func generate_depth_map(
@@ -49,13 +49,13 @@ static func generate_depth_map(
     sub_vp.queue_free()
     return img
 
-static func save_depth_map_debug(depth_image: Image, filepath: String = "user://depth_map_debug.png") -> bool:
+static func save_depth_map_debug(depth_image: Image, filepath: String = "user://depth_map_canvas_debug.png") -> bool:
     if depth_image == null:
-        print("[DepthMapGenerator] No image to save")
+        printerr("[DepthMapGenerator] No image to save")
         return false
     var err = depth_image.save_png(filepath)
     if err != OK:
-        print("[DepthMapGenerator] Failed to save PNG: %s" % err)
+        printerr("[DepthMapGenerator] Failed to save PNG: %s" % err)
         return false
     return true
 
@@ -74,7 +74,7 @@ void fragment() {
     float lin = (2.0 * near_plane * far_plane) /
                 (far_plane + near_plane - z_ndc * (far_plane - near_plane));
     float norm = clamp((lin - near_plane)/(far_plane - near_plane), 0.0, 1.0);
-    COLOR = vec4(vec3(norm), 1.0);
+    COLOR = vec4(vec3(1.0 - norm), 1.0);
 }
 """
     mat.shader = sh
