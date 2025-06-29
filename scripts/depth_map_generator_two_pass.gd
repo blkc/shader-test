@@ -117,6 +117,12 @@ static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 			# A gamma correction is applied to brighten mid-tones and match the "squirrel" look.
 			var gamma = 0.45
 			var final_value = pow(1.0 - norm, gamma)
+
+			# Dithering helps break up color banding by adding a small amount of noise
+			# before quantization, creating the illusion of a smoother gradient.
+			var dither_strength = 1.0 / 255.0
+			final_value += (randf() - 0.5) * dither_strength
+			
 			final_image.set_pixel(x, y, Color(final_value, final_value, final_value))
 			
 	return final_image
