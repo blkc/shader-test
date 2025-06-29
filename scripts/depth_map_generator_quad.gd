@@ -1,13 +1,21 @@
 class_name DepthMapGeneratorQuad
 extends RefCounted
 
-static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vector2, remap_near: float = -1.0, remap_far: float = -1.0) -> Image:
+static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vector2, model_node: Node3D = null) -> Image:
     if not parent_vp or not camera:
         printerr("[DepthMapGeneratorQuad] Invalid Viewport or Camera provided.")
         return null
 
-    var remap_n = remap_near if remap_near >= 0.0 else camera.near
-    var remap_f = remap_far if remap_far >= 0.0 else camera.far
+    var remap_n: float
+    var remap_f: float
+
+    if model_node:
+        var remap_values = _calculate_remap_from_model(model_node, camera)
+        remap_n = remap_values[0]
+        remap_f = remap_values[1]
+    else:
+        remap_n = camera.near
+        remap_f = camera.far
 
     var sub_vp = SubViewport.new()
     sub_vp.size = size
@@ -39,6 +47,55 @@ static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vect
 
     sub_vp.queue_free()
     return img
+
+static func _calculate_remap_from_model(model_node: Node3D, camera: Camera3D) -> PackedFloat32Array:
+    var model_aabb = _get_model_aabb(model_node)
+
+    if model_aabb.size == Vector3.ZERO:
+        return [camera.near, camera.far]
+
+    var view_matrix = camera.global_transform.affine_inverse()
+
+    var min_z = INF
+    var max_z = - INF
+
+    for i in 8:
+        var corner = model_aabb.get_endpoint(i)
+        var view_pos = view_matrix * corner
+        min_z = min(min_z, view_pos.z)
+        max_z = max(max_z, view_pos.z)
+
+    var remap_near = - max_z
+    var remap_far = - min_z
+
+    var padding = (remap_far - remap_near) * 0.05
+    remap_near -= padding
+    remap_far += padding
+
+    remap_near = max(remap_near, camera.near)
+    remap_far = min(remap_far, camera.far)
+
+    return [remap_near, remap_far]
+
+static func _get_model_aabb(node: Node3D) -> AABB:
+    var aabb = AABB()
+    var has_aabb = false
+
+    var queue: Array[Node] = [node]
+    while not queue.is_empty():
+        var current = queue.pop_front()
+        if current is VisualInstance3D and current.is_visible_in_tree():
+            var instance_aabb = current.global_transform * current.get_aabb()
+            if not has_aabb:
+                aabb = instance_aabb
+                has_aabb = true
+            else:
+                aabb = aabb.merge(instance_aabb)
+
+        for child in current.get_children():
+            queue.push_back(child)
+
+    return aabb if has_aabb else AABB()
 
 static func save_depth_map_debug(depth_image: Image, filepath: String = "user://depth_map_quad_debug.png") -> bool:
     if depth_image == null:
