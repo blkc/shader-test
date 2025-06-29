@@ -83,3 +83,10 @@ offset_top = 60.0
 offset_right = 170.0
 offset_bottom = 51.0
 text = "Capture with Quad"
+
+[node name="TwoPassButton" type="Button" parent="CanvasLayer"]
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 170.0
+offset_bottom = 51.0
+text = "Capture with Two Pass"
