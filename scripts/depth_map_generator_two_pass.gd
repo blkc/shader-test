@@ -1,48 +1,38 @@
 class_name DepthMapGeneratorTwoPass
 extends RefCounted
 
-## Generates a high-contrast depth map using a two-pass method.
-## It correctly handles deformed meshes with skeletons by bypassing AABB calculations.
 static func generate_depth_map(parent_vp: Viewport, camera: Camera3D, size: Vector2, cull_mask: int = 0b1) -> Image:
 	if not parent_vp or not camera:
 		printerr("[DepthMapGeneratorTwoPass] Invalid Viewport or Camera provided.")
 		return null
 
-	# --- PASS 1: Render raw, encoded depth to a texture ---
 	var raw_depth_image = await _pass_1_get_raw_depth_image(parent_vp, camera, size, cull_mask)
 	if raw_depth_image == null:
 		printerr("[DepthMapGeneratorTwoPass] Failed to generate raw depth image.")
 		return null
 
-	# --- PASS 2: Analyze the raw image and normalize it to a final 8-bit image ---
 	var final_image = _pass_2_normalize_raw_image(raw_depth_image)
 	
 	return final_image
 
 
-## Creates a SubViewport to render the scene with a shader that writes raw linear depth.
 static func _pass_1_get_raw_depth_image(parent_vp: Viewport, camera: Camera3D, size: Vector2, cull_mask: int) -> Image:
 	var sub_vp = SubViewport.new()
 	sub_vp.size = size
 	sub_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	sub_vp.transparent_bg = true
-	# Use the same 3D world, but the camera inside will have no environment.
 	sub_vp.world_3d = parent_vp.world_3d
 	parent_vp.add_child(sub_vp)
 
 	var cam = camera.duplicate() as Camera3D
-	# Explicitly copy camera properties to ensure the duplicate is exact.
 	cam.global_transform = camera.global_transform
 	cam.projection = camera.projection
 	cam.fov = camera.fov
 	cam.size = camera.size
 	cam.near = camera.near
 	cam.far = camera.far
-	# Set the cull mask to render only the specified layers.
 	cam.cull_mask = cull_mask
-	# Ensure the camera inside the viewport has no environment to force an unlit render.
 	cam.environment = null
-	# This is crucial so the SubViewport actually uses this camera.
 	cam.current = true
 	sub_vp.add_child(cam)
 
@@ -62,13 +52,10 @@ static func _pass_1_get_raw_depth_image(parent_vp: Viewport, camera: Camera3D, s
 	return img
 
 
-## Decodes a 3-channel Color back into a single high-precision float value.
 static func _unpack_rgb_to_float(c: Color) -> float:
 	return c.r + (c.g / 255.0) + (c.b / 65025.0)
 
 
-## Iterates over the raw image, finds the min/max depth range,
-## and uses that range to create a normalized L8 grayscale image.
 static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 	var width = raw_image.get_width()
 	var height = raw_image.get_height()
@@ -76,11 +63,9 @@ static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 	var d_min = 1e30
 	var d_max = -1e30
 
-	# First, find the true min/max depth of the objects in the image
 	for y in range(height):
 		for x in range(width):
 			var packed_color = raw_image.get_pixel(x, y)
-			# Use the alpha channel as a sentinel to identify object pixels.
 			if packed_color.a > 0.5:
 				var d = _unpack_rgb_to_float(packed_color)
 				d_min = min(d_min, d)
@@ -90,7 +75,6 @@ static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 		printerr("[DepthMapGeneratorTwoPass] No objects found in depth map (is scene empty?).")
 		return null
 
-	# Second, normalize the depth into the 0-1 range and create the final image
 	var final_image = Image.create(width, height, false, Image.FORMAT_L8)
 	var range = d_max - d_min
 
@@ -98,28 +82,22 @@ static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 	# range to ensure a subtle gradient is still visible. This prevents
 	# shallow objects from appearing as a solid white color.
 	if range < 1e-6:
-		d_max = d_min + 0.1 # Create an artificial 10cm depth range.
+		d_max = d_min + 0.1
 		range = 0.1
 
 	for y in range(height):
 		for x in range(width):
 			var packed_color = raw_image.get_pixel(x, y)
 			var norm = 0.0
-			# Check for background pixels again before normalizing
 			if packed_color.a > 0.5:
 				var d = _unpack_rgb_to_float(packed_color)
 				norm = clamp((d - d_min) / range, 0.0, 1.0)
 			else:
-				# Explicitly set background to the farthest value
 				norm = 1.0
 			
-			# Invert so closer objects are whiter, and write to L8 format.
-			# A gamma correction is applied to brighten mid-tones and match the "squirrel" look.
 			var gamma = 0.45
 			var final_value = pow(1.0 - norm, gamma)
 
-			# Dithering helps break up color banding by adding a small amount of noise
-			# before quantization, creating the illusion of a smoother gradient.
 			var dither_strength = 1.0 / 255.0
 			final_value += (randf() - 0.5) * dither_strength
 			
@@ -131,7 +109,6 @@ static func _pass_2_normalize_raw_image(raw_image: Image) -> Image:
 static func _make_raw_depth_shader() -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
 	var sh = Shader.new()
-	# This shader no longer needs camera uniforms passed in.
 	sh.code = """
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_test_disabled;
